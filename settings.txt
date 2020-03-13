@@ -66,7 +66,8 @@ variables
 
 subroutines
 {
-	0: SetMaxHealth
+	0: SetAllStats
+	1: SetKD
 }
 
 rule("Set Globals")
@@ -83,38 +84,6 @@ rule("Set Globals")
 		Set Global Variable(DamageMultiplier, Absolute Value(0.055));
 		Set Global Variable(HealingMultiplier, Absolute Value(0.050));
 		Set Global Variable(MaxHPMultiplier, Absolute Value(0.350));
-	}
-}
-
-rule("Set Player Variables - Elim")
-{
-	event
-	{
-		Player Earned Elimination;
-		All;
-		All;
-	}
-
-	actions
-	{
-		"let KD = Deaths - Elims"
-		Set Player Variable(Event Player, KD, Subtract(Number of Deaths(Event Player), Number of Eliminations(Event Player)));
-	}
-}
-
-rule("Set Player Variables - Death")
-{
-	event
-	{
-		Player Died;
-		All;
-		All;
-	}
-
-	actions
-	{
-		"let KD = Deaths - Elims"
-		Set Player Variable(Event Player, KD, Subtract(Number of Deaths(Event Player), Number of Eliminations(Event Player)));
 	}
 }
 
@@ -156,7 +125,7 @@ rule("Respawn")
 	}
 }
 
-rule("Health")
+rule("Set Initial Health")
 {
 	event
 	{
@@ -167,12 +136,12 @@ rule("Health")
 
 	actions
 	{
-		Call Subroutine(SetMaxHealth);
+		Call Subroutine(SetAllStats);
 		Heal(Event Player, Null, Max Health(Event Player));
 	}
 }
 
-rule("Health - On Elim")
+rule("Set SetKD - On Elim")
 {
 	event
 	{
@@ -183,11 +152,11 @@ rule("Health - On Elim")
 
 	actions
 	{
-		Call Subroutine(SetMaxHealth);
+		Call Subroutine(SetKD);
 	}
 }
 
-rule("Health - On Death")
+rule("Set SetKD - On Death")
 {
 	event
 	{
@@ -198,70 +167,73 @@ rule("Health - On Death")
 
 	actions
 	{
-		Call Subroutine(SetMaxHealth);
+		Call Subroutine(SetKD);
+	}
+}
+
+rule("SetAllStats - On Elim")
+{
+	event
+	{
+		Player Earned Elimination;
+		All;
+		All;
+	}
+
+	actions
+	{
+		Call Subroutine(SetAllStats);
+	}
+}
+
+rule("SetAllStats - On Death")
+{
+	event
+	{
+		Player Died;
+		All;
+		All;
+	}
+
+	actions
+	{
+		Call Subroutine(SetAllStats);
 		Heal(Event Player, Null, Max Health(Event Player));
 	}
 }
 
-rule("Movement")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		All;
-	}
-
-	actions
-	{
-		Set Move Speed(Event Player, Multiply(100, Raise To Power(Add(1, Global Variable(SpeedMultiplier)), Player Variable(Event Player,
-			KD))));
-	}
-}
-
-rule("Attack")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		All;
-	}
-
-	actions
-	{
-		Set Damage Dealt(Event Player, Multiply(100, Raise To Power(Add(1, Global Variable(DamageMultiplier)), Player Variable(
-			Event Player, KD))));
-	}
-}
-
-rule("Healing")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		All;
-	}
-
-	actions
-	{
-		Set Healing Dealt(Event Player, Multiply(100, Raise To Power(Add(1, Global Variable(HealingMultiplier)), Player Variable(
-			Event Player, KD))));
-	}
-}
-
-rule("SetMaxHealth")
+rule("SetKD")
 {
 	event
 	{
 		Subroutine;
-		SetMaxHealth;
+		SetKD;
 	}
 
 	actions
 	{
-		Set Max Health(Event Player, Multiply(100, Raise To Power(Add(1, Global Variable(MaxHPMultiplier)), Player Variable(Event Player,
-			KD))));
+		"let KD = Deaths - Elims"
+		Set Player Variable(Event Player, KD, Subtract(Number of Deaths(Event Player), Number of Eliminations(Event Player)));
+	}
+}
+
+rule("SetAllStats")
+{
+	event
+	{
+		Subroutine;
+		SetAllStats;
+	}
+
+	actions
+	{
+		"MaxHealth = 100 * (1+MaxHPMultiplier)^KD"
+		Set Max Health(Event Player, Multiply(100, Raise To Power(Add(1, Global Variable(MaxHPMultiplier)), Player Variable(Event Player, KD))));
+		"MoveSpeed = 100 * (1+SpeedMultiplier)^KD"
+		Set Move Speed(Event Player, Multiply(100, Raise To Power(Add(1, Global Variable(SpeedMultiplier)), Player Variable(Event Player, KD))));
+		"HealingDealt = 100 * (1+HealingMultiplier)^KD"
+		Set Healing Dealt(Event Player, Multiply(100, Raise To Power(Add(1, Global Variable(HealingMultiplier)), Player Variable(Event Player, KD))));
+		"DamageDealt = 100 * (1+DamageMultiplier)^KD"
+		Set Damage Dealt(Event Player, Multiply(100, Raise To Power(Add(1, Global Variable(DamageMultiplier)), Player Variable(Event Player, KD))));
 	}
 }
