@@ -1,0 +1,267 @@
+settings
+{
+	main
+	{
+		Description: "Death Experiment"
+	}
+
+	modes
+	{
+		Assault
+		{
+			Capture Speed Modifier: 10%
+		}
+
+		Control
+		{
+			Capture Speed Modifier: 10%
+			Score To Win: 3
+			Scoring Speed Modifier: 10%
+		}
+
+		disabled Deathmatch
+		{
+			Game Length In Minutes: 15
+			Score To Win: 50
+		}
+
+		Escort
+		{
+			Payload Speed Modifier: 10%
+		}
+
+		Hybrid
+		{
+			Capture Speed Modifier: 10%
+			Payload Speed Modifier: 10%
+		}
+
+		disabled Team Deathmatch
+		{
+			Game Length In Minutes: 15
+			Score To Win: 200
+			Self Initiated Respawn: Off
+		}
+
+		General
+		{
+			Hero Limit: Off
+			Respawn Time Scalar: 41%
+		}
+	}
+}
+
+variables
+{
+	global:
+		0: SpeedMultiplier
+		1: DamageMultiplier
+		2: MaxHPMultiplier
+		3: Debug
+		4: HealingMultiplier
+
+	player:
+		0: KD
+}
+
+subroutines
+{
+	0: SetMaxHealth
+}
+
+rule("Set Globals")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	actions
+	{
+		Set Global Variable(Debug, True);
+		Set Global Variable(SpeedMultiplier, Absolute Value(0.100));
+		Set Global Variable(DamageMultiplier, Absolute Value(0.055));
+		Set Global Variable(HealingMultiplier, Absolute Value(0.050));
+		Set Global Variable(MaxHPMultiplier, Absolute Value(0.350));
+	}
+}
+
+rule("Set Player Variables - Elim")
+{
+	event
+	{
+		Player Earned Elimination;
+		All;
+		All;
+	}
+
+	actions
+	{
+		"let KD = Deaths - Elims"
+		Set Player Variable(Event Player, KD, Subtract(Number of Deaths(Event Player), Number of Eliminations(Event Player)));
+	}
+}
+
+rule("Set Player Variables - Death")
+{
+	event
+	{
+		Player Died;
+		All;
+		All;
+	}
+
+	actions
+	{
+		"let KD = Deaths - Elims"
+		Set Player Variable(Event Player, KD, Subtract(Number of Deaths(Event Player), Number of Eliminations(Event Player)));
+	}
+}
+
+rule("HUD")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	actions
+	{
+		Create HUD Text(Event Player, Custom String("KD: {0}", Player Variable(Event Player, KD), Null, Null), Null, Null, Left, 0, White,
+			White, White, Visible To and String, Default Visibility);
+		Create HUD Text(Event Player, Custom String("Speed: {0}", Speed Of(Event Player), Null, Null), Null, Null, Left, 0, White, White,
+			White, Visible To and String, Default Visibility);
+	}
+}
+
+rule("Respawn")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Global Variable(Debug) == True;
+	}
+
+	actions
+	{
+		Set Respawn Max Time(All Players(All Teams), 2);
+	}
+}
+
+rule("Health")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	actions
+	{
+		Call Subroutine(SetMaxHealth);
+		Heal(Event Player, Null, Max Health(Event Player));
+	}
+}
+
+rule("Health - On Elim")
+{
+	event
+	{
+		Player Earned Elimination;
+		All;
+		All;
+	}
+
+	actions
+	{
+		Call Subroutine(SetMaxHealth);
+	}
+}
+
+rule("Health - On Death")
+{
+	event
+	{
+		Player Died;
+		All;
+		All;
+	}
+
+	actions
+	{
+		Call Subroutine(SetMaxHealth);
+		Heal(Event Player, Null, Max Health(Event Player));
+	}
+}
+
+rule("Movement")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	actions
+	{
+		Set Move Speed(Event Player, Multiply(100, Raise To Power(Add(1, Global Variable(SpeedMultiplier)), Player Variable(Event Player,
+			KD))));
+	}
+}
+
+rule("Attack")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	actions
+	{
+		Set Damage Dealt(Event Player, Multiply(100, Raise To Power(Add(1, Global Variable(DamageMultiplier)), Player Variable(
+			Event Player, KD))));
+	}
+}
+
+rule("Healing")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	actions
+	{
+		Set Healing Dealt(Event Player, Multiply(100, Raise To Power(Add(1, Global Variable(HealingMultiplier)), Player Variable(
+			Event Player, KD))));
+	}
+}
+
+rule("SetMaxHealth")
+{
+	event
+	{
+		Subroutine;
+		SetMaxHealth;
+	}
+
+	actions
+	{
+		Set Max Health(Event Player, Multiply(100, Raise To Power(Add(1, Global Variable(MaxHPMultiplier)), Player Variable(Event Player,
+			KD))));
+	}
+}
