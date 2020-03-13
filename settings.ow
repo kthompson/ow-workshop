@@ -2,7 +2,7 @@ settings
 {
 	main
 	{
-		Description: "Death Experiment"
+		Description: "Friend Trainer"
 	}
 
 	modes
@@ -54,11 +54,15 @@ settings
 variables
 {
 	global:
-		0: SpeedMultiplier
-		1: DamageMultiplier
-		2: MaxHPMultiplier
-		3: Debug
-		4: HealingMultiplier
+		0: Debug
+		1: SpeedMultiplier
+		2: SpeedMin
+		3: DamageMultiplier
+		4: DamageMin
+		5: HealthMultiplier
+		6: HealthMin
+		7: HealingMultiplier
+		8: HealingMin
 
 	player:
 		0: KD
@@ -81,9 +85,13 @@ rule("Set Globals")
 	{
 		Set Global Variable(Debug, True);
 		Set Global Variable(SpeedMultiplier, Absolute Value(0.100));
+		Set Global Variable(SpeedMin, Absolute Value(70));
 		Set Global Variable(DamageMultiplier, Absolute Value(0.055));
+		Set Global Variable(DamageMin, Absolute Value(70));
 		Set Global Variable(HealingMultiplier, Absolute Value(0.050));
-		Set Global Variable(MaxHPMultiplier, Absolute Value(0.350));
+		Set Global Variable(HealingMin, Absolute Value(70));
+		Set Global Variable(HealthMultiplier, Absolute Value(0.350));
+		Set Global Variable(HealthMin, Absolute Value(70));
 	}
 }
 
@@ -227,13 +235,17 @@ rule("SetAllStats")
 
 	actions
 	{
-		"MaxHealth = 100 * (1+MaxHPMultiplier)^KD"
-		Set Max Health(Event Player, Multiply(100, Raise To Power(Add(1, Global Variable(MaxHPMultiplier)), Player Variable(Event Player, KD))));
-		"MoveSpeed = 100 * (1+SpeedMultiplier)^KD"
-		Set Move Speed(Event Player, Multiply(100, Raise To Power(Add(1, Global Variable(SpeedMultiplier)), Player Variable(Event Player, KD))));
-		"HealingDealt = 100 * (1+HealingMultiplier)^KD"
-		Set Healing Dealt(Event Player, Multiply(100, Raise To Power(Add(1, Global Variable(HealingMultiplier)), Player Variable(Event Player, KD))));
-		"DamageDealt = 100 * (1+DamageMultiplier)^KD"
-		Set Damage Dealt(Event Player, Multiply(100, Raise To Power(Add(1, Global Variable(DamageMultiplier)), Player Variable(Event Player, KD))));
+		"MaxHealth = Max(HealthMin, 100 * (1+HealthMultiplier)^KD)"
+		Set Max Health(Event Player, Max(Global Variable(HealthMin), Multiply(100, Raise To Power(Add(1, Global Variable(
+			HealthMultiplier)), Player Variable(Event Player, KD)))));
+		"MoveSpeed = Max(SpeedMin, 100 * (1+SpeedMultiplier)^KD)"
+		Set Move Speed(Event Player, Max(Global Variable(SpeedMin), Multiply(100, Raise To Power(Add(1, Global Variable(SpeedMultiplier)),
+			Player Variable(Event Player, KD)))));
+		"HealingDealt = Max(HealingMin, 100 * (1+HealingMultiplier)^KD)"
+		Set Healing Dealt(Event Player, Max(Global Variable(HealingMin), Multiply(100, Raise To Power(Add(1, Global Variable(
+			HealingMultiplier)), Player Variable(Event Player, KD)))));
+		"DamageDealt = Max(DamageMin, 100 * (1+DamageMultiplier)^KD)"
+		Set Damage Dealt(Event Player, Max(Global Variable(DamageMin), Multiply(100, Raise To Power(Add(1, Global Variable(
+			DamageMultiplier)), Player Variable(Event Player, KD)))));
 	}
 }
